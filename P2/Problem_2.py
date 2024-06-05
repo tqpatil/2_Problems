@@ -3,8 +3,12 @@ import requests
 from pinecone import Pinecone
 from sentence_transformers import SentenceTransformer
 import uuid
+from langchain_openai import ChatOpenAI
 import re
-
+from langchain.agents import tool
+from langchain_core.messages import HumanMessage, SystemMessage
+from langgraph.prebuilt import create_react_agent
+from langchain_community.chat_message_histories import SQLChatMessageHistory
 def vectorize(rawtext, model):
     arr=rawtext.split()
     if (len(arr)>256):
@@ -17,6 +21,7 @@ def text_from_html(body):
         visible_text = soup.getText()
         out = re.sub(r'\s+', ' ', visible_text).strip()
         return out
+@tool
 def getWebsiteContent(url: str):
     '''
     Takes in a url and returns all of the website Content from that URL 
@@ -33,8 +38,8 @@ def getWebsiteContent(url: str):
     out= (False, None)
     if("matches" in results):
         for i in range(len(results["matches"])):
-            if results["matches"][0]["metadata"]["url"] == url:
-                out= (True, results["matches"]["metadata"])
+            if results["matches"][i]["metadata"]["url"] == url:
+                out= (True, results["matches"][i]["metadata"])
                 break 
     if(out[0] == False):
         try:
@@ -57,6 +62,27 @@ def insert_text(url, message, message_vec, index):
                 }
             ], async_req = True)
     return async_result.get()
+
+def get_session_history(session_id):
+    return SQLChatMessageHistory(session_id, "sqlite:///memory.db")
+def init_agent():
+    with open("OPENAIAPIKEY.txt", "r") as text_file:
+        openaiAPI=str(text_file.read())
+    with open("OPENAIORGKEY.txt", "r") as txt:
+        openaiOrg=str(txt.read())
+    model = ChatOpenAI(api_key=openaiAPI, organization=openaiOrg)
+    tools = [getWebsiteContent]
+    agentExec = create_react_agent(model,tools)
+    return agentExec
+    # runnable = RunnableWithMessageHistory(model_with_tools, get_session_history)
+    # return runnable
+def run(model, query):
+    template = "Given a tool to get the raw text content from a website, you must determine if the website provides any ai related services and why. Your response should only contain: '<ai/not-ai>, <why it is an ai service>'."
+    prompt = [SystemMessage(content=template),HumanMessage(content=query)]
+    return model.invoke({"messages": prompt})
+    # return model.invoke(prompt, config={"configurable": {"session_id": "1"}})
 if __name__ == "__main__":  
-    print(getWebsiteContent("https://huggingface.co/"))
-   
+    # print(getWebsiteContent("https://huggingface.co/"))
+    agent = init_agent()
+    response = run(agent,"Here is the url: https://huggingface.co/")
+    print(response["messages"][-1].content)

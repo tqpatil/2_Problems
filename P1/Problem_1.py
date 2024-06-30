@@ -2,6 +2,7 @@ import hashlib
 import time
 import sys
 import os
+import subprocess
 unique= set()
 def dedup(inputFile, outputFile): ## inputfile: file pointer, outputfile: file pointer
     for item in inputFile:

@@ -77,7 +77,7 @@ def init_agent():
     # runnable = RunnableWithMessageHistory(model_with_tools, get_session_history)
     # return runnable
 def run(model, query):
-    template = "Given a tool to get the raw text content from a website, you must determine if the website provides any ai related services and why. Your response should only contain: '<ai/not-ai>, <why it is an ai service>'."
+    template = "Given a tool to get the raw text content from a website, you must determine if the website provides any ai related services and why. Your response should only contain: '<ai/not-ai>, <what ai services/tools they offer>'."
     prompt = [SystemMessage(content=template),HumanMessage(content=query)]
     return model.invoke({"messages": prompt})
     # return model.invoke(prompt, config={"configurable": {"session_id": "1"}})

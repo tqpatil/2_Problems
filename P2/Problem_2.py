@@ -9,6 +9,8 @@ from langchain.agents import tool
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 from langchain_community.chat_message_histories import SQLChatMessageHistory
+import sys
+import os
 def vectorize(rawtext, model):
     arr=rawtext.split()
     if (len(arr)>256):
@@ -77,12 +79,33 @@ def init_agent():
     # runnable = RunnableWithMessageHistory(model_with_tools, get_session_history)
     # return runnable
 def run(model, query):
-    template = "Given a tool to get the raw text content from a website, you must determine if the website provides any ai related services and why. Your response should only contain: '<ai/not-ai>, <what ai services/tools they offer>'."
+    template = "Given a tool to get the raw text content from a website, you must determine if the website provides any ai related services and why. Your response should have 1 sentence stating what ai services/tools they offer or 'None' if it is not ai. If you recognize the website, then you can also infer the answers."
     prompt = [SystemMessage(content=template),HumanMessage(content=query)]
     return model.invoke({"messages": prompt})
     # return model.invoke(prompt, config={"configurable": {"session_id": "1"}})
+def solution(text: str,agent):
+    response = run(agent, f"Here is the url: {text}")
+    return response["messages"][-1].content
 if __name__ == "__main__":  
     # print(getWebsiteContent("https://huggingface.co/"))
+    if(len(sys.argv)< 3):
+        print("Please pass in input file path and output file path as arguments")
+        sys.exit()
+    inFilePath =sys.argv[1]
+    outFilePath = sys.argv[2] 
+    if not (os.path.exists(inFilePath)):
+        print("Error: input file doesn't exist")
+        sys.exit()
+    inFile = open(inFilePath,'r')
+    outFile = open(outFilePath,'w')
+    lines = inFile.readlines()
     agent = init_agent()
-    response = run(agent,"Here is the url: https://huggingface.co/")
-    print(response["messages"][-1].content)
+    for line in lines:
+        a = solution(line.strip(),agent)
+        if(a == "None" or a == "none"):
+            outFile.write("not-ai, " + a + "\n")
+        else:
+            outFile.write("ai, " + a + "\n")
+    # agent = init_agent()
+    # response = run(agent,"Here is the url: https://huggingface.co/")
+    # print(response["messages"][-1].content)

@@ -1,0 +1,5 @@
+https://huggingface.co/
+https://www.amazon.com/
+https://towardsdatascience.com/
+https://www.agentic.ai/
+https://www.langchain.com/

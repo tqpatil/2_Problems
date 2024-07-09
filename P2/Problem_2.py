@@ -83,9 +83,12 @@ def run(model, query):
     prompt = [SystemMessage(content=template),HumanMessage(content=query)]
     return model.invoke({"messages": prompt})
     # return model.invoke(prompt, config={"configurable": {"session_id": "1"}})
-def solution(text: str,agent):
-    response = run(agent, f"Here is the url: {text}")
-    return response["messages"][-1].content
+def solution(text,agent):
+    output = []
+    for item in text:
+        response = run(agent, f"Here is the url: {item}")
+        output.append(response["messages"][-1].content)
+    return output
 if __name__ == "__main__":  
     # print(getWebsiteContent("https://huggingface.co/"))
     if(len(sys.argv)< 3):
@@ -100,12 +103,15 @@ if __name__ == "__main__":
     outFile = open(outFilePath,'w')
     lines = inFile.readlines()
     agent = init_agent()
+    inputSet = []
     for line in lines:
-        a = solution(line.strip(),agent)
-        if(a == "None" or a == "none"):
-            outFile.write("not-ai, " + a + "\n")
+        inputSet.append(line.strip())
+    output = solution(text=inputSet,agent=agent)
+    for i in range(len(output)):
+        if(output[i] == "None" or output[i] == "none"):
+            outFile.write("not-ai, " + output[i] + "\n")
         else:
-            outFile.write("ai, " + a + "\n")
+            outFile.write("ai, " + output[i] + "\n")
     # agent = init_agent()
     # response = run(agent,"Here is the url: https://huggingface.co/")
     # print(response["messages"][-1].content)
